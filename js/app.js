@@ -1,5 +1,5 @@
 import * as db from './db.js';
-import { parseText } from './parser.js';
+import { parsePasted } from './parser.js';
 import { importFromUrl, extractUrl } from './importer.js';
 import { recipesToJson, jsonToBackup } from './backup.js';
 import { readImages } from './ocr.js';
@@ -290,7 +290,7 @@ async function importLink(rawUrl) {
 }
 
 function importText(text) {
-  const recipe = parseText(text);
+  const recipe = parsePasted(text);
   if (!recipe) return toast('Le texte est vide : rien à mettre en forme.');
   openDraft(recipe);
 }
@@ -299,7 +299,7 @@ async function importImages(files) {
   if (!files.length) return;
   await withBusy('Lecture de l\'image…', async (setText) => {
     const text = await readImages(files, setText);
-    const recipe = text.trim() ? parseText(text) : null;
+    const recipe = text.trim() ? parsePasted(text) : null;
     if (!recipe) throw new Error('Aucun texte détecté. Essaie avec une image plus nette et bien cadrée.');
     openDraft(recipe);
   });

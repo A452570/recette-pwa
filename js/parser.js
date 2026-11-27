@@ -153,12 +153,24 @@ function timeOf(meta) {
 const PAGE_STOP = /^(commentaires?|laisser un commentaire|laissez un commentaire|partager|partagez|share|vous aimerez aussi|articles? (similaires|recommandes?|precedents?|suivants?)|recettes? (similaires|a decouvrir|precedentes?)|a lire aussi|newsletter|inscri|publicite|navigation|suivez|abonnez)/;
 const PAGE_META = /^(preparation|cuisson|temps|duree|pour \d|\d+ (personnes|portions|parts))/;
 
+const NOT_TITLE = /avis|note|facile|difficile|cout|bon marche|moyen|cher|imprimer|sauvegarder|enregistrer|partager|ajouter|connexion|menu|recherche|^\d|favori/;
+
+/** Devine le titre dans les lignes qui précèdent « Ingrédients » (texte de page collé). */
+function guessTitle(candidates) {
+  const ok = candidates.filter((l) => {
+    const words = l.split(/\s+/).length;
+    return l.length >= 8 && l.length <= 90 && words >= 2 && !l.endsWith('.') &&
+      !PAGE_META.test(norm(l)) && !NOT_TITLE.test(norm(l)) && !BULLET.test(l);
+  });
+  return ok.length ? ok[ok.length - 1] : '';
+}
+
 /**
  * Texte visible d'une page web (une ligne par bloc) : on repart de la rubrique « Ingrédients »,
  * on garde les durées juste avant, et on s'arrête aux commentaires / partages.
  * Retourne null si aucune rubrique d'ingrédients n'est trouvée.
  */
-export function parsePage(pageLines, pageTitle) {
+export function parsePage(pageLines, pageTitle = '') {
   const lines = pageLines.map((l) => l.replace(/\s+/g, ' ').trim()).filter((l) => l && l !== '-');
   const idx = lines.findIndex((l) => headerOf(l) === 'ingredients');
   if (idx === -1 || lines.length - idx < 3) return null;
@@ -166,9 +178,9 @@ export function parsePage(pageLines, pageTitle) {
   let after = lines.slice(idx);
   const stop = after.findIndex((l, i) => i > 0 && l.length <= 60 && PAGE_STOP.test(norm(l)));
   if (stop > 0) after = after.slice(0, stop);
-  const recipe = parseText([pageTitle, ...before, ...after].filter((l) => l && l.trim()).join('\n'));
+  const title = cleanTitle(pageTitle || guessTitle(lines.slice(Math.max(0, idx - 15), idx)));
+  const recipe = parseText([title, ...before, ...after].filter((l) => l && l.trim()).join('\n'));
   if (!recipe) return null;
-  const title = cleanTitle(pageTitle || '');
   if (title) recipe.title = title;
   return recipe;
 }
@@ -247,4 +259,14 @@ export function parseText(text) {
     servings: meta.servings,
     sourceUrl: '',
   };
+}
+
+/** Texte collé : si c'est une page entière (menus, commentaires…), on isole la recette. */
+export function parsePasted(text) {
+  const lines = String(text).replace(/\r/g, '').split('\n');
+  if (lines.filter((l) => l.trim()).length >= 15) {
+    const page = parsePage(lines.map(cleanLine));
+    if (page) return page;
+  }
+  return parseText(text);
 }

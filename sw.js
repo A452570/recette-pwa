@@ -1,7 +1,7 @@
 // Service worker : permet d'utiliser l'application hors connexion.
 // Réseau d'abord (pour recevoir les mises à jour), cache en secours.
 
-const CACHE = 'recettes-v4';
+const CACHE = 'recettes-v5';
 const ASSETS = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
   'js/app.js', 'js/db.js', 'js/parser.js', 'js/importer.js', 'js/backup.js', 'js/ocr.js',
