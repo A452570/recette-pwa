@@ -4,6 +4,8 @@
 // par lien fonctionne, il faut un petit "relais" (voir worker/relay.js et le README) dont l'adresse
 // se renseigne dans Réglages. Sans relais, on essaie quand même en direct (rarement possible).
 
+import { parsePage } from './parser.js';
+
 const URL_RE = /https?:\/\/[^\s]+/i;
 
 export const extractUrl = (text) => {
@@ -37,7 +39,43 @@ export async function importFromUrl(rawUrl, relay) {
     const node = findRecipe(json);
     if (node) return toRecipe(node, url);
   }
-  throw new Error("Aucune recette trouvée sur cette page. Le site n'utilise peut-être pas de données structurées : essaie « Coller du texte ».");
+  // Pas de données structurées : on analyse le texte visible de la page.
+  const title = pageTitle(doc);
+  const recipe = parsePage(pageLines(doc), title);
+  if (recipe) return { ...recipe, sourceUrl: url };
+  throw new Error("Aucune recette trouvée sur cette page. Copie le texte de la recette et utilise « Coller du texte ».");
+}
+
+const NOISE = 'script,style,noscript,nav,footer,aside,form,iframe,svg,button,select,' +
+  '[class*="comment"],[id*="comment"],[class*="sidebar"],[id*="sidebar"],[class*="share"]';
+const BLOCK = new Set(['P', 'DIV', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BR', 'TR', 'UL', 'OL',
+  'SECTION', 'ARTICLE', 'TABLE', 'BLOCKQUOTE', 'FIGURE', 'FIGCAPTION']);
+
+function pageTitle(doc) {
+  const raw = doc.querySelector('h1')?.textContent
+    || doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || '';
+  return raw.replace(/\s+[|–—-]\s+[^|–—-]*$/, '').replace(/\s+/g, ' ').trim();
+}
+
+/** Texte visible de la page, une ligne par bloc (les éléments de menu, commentaires… sont écartés). */
+function pageLines(doc) {
+  for (const n of doc.querySelectorAll(NOISE)) {
+    if (n.matches('body,html') || n.querySelector('h1,article,main')) continue;
+    n.remove();
+  }
+  const out = [];
+  const walk = (node) => {
+    if (node.nodeType === 3) { out.push(node.nodeValue); return; }
+    if (node.nodeType !== 1) return;
+    const block = BLOCK.has(node.tagName);
+    if (block) out.push('\n');
+    if (node.tagName === 'LI') out.push('- ');
+    node.childNodes.forEach(walk);
+    if (block) out.push('\n');
+  };
+  walk(doc.body);
+  return out.join('').replace(/\u00a0/g, ' ').replace(/\n- *\n+/g, '\n- ').split('\n')
+    .map((l) => l.trim()).filter(Boolean);
 }
 
 function findRecipe(node) {

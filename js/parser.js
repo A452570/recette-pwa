@@ -150,6 +150,29 @@ function timeOf(meta) {
     .filter(Boolean).join(' · ');
 }
 
+const PAGE_STOP = /^(commentaires?|laisser un commentaire|laissez un commentaire|partager|partagez|share|vous aimerez aussi|articles? (similaires|recommandes?|precedents?|suivants?)|recettes? (similaires|a decouvrir|precedentes?)|a lire aussi|newsletter|inscri|publicite|navigation|suivez|abonnez)/;
+const PAGE_META = /^(preparation|cuisson|temps|duree|pour \d|\d+ (personnes|portions|parts))/;
+
+/**
+ * Texte visible d'une page web (une ligne par bloc) : on repart de la rubrique « Ingrédients »,
+ * on garde les durées juste avant, et on s'arrête aux commentaires / partages.
+ * Retourne null si aucune rubrique d'ingrédients n'est trouvée.
+ */
+export function parsePage(pageLines, pageTitle) {
+  const lines = pageLines.map((l) => l.replace(/\s+/g, ' ').trim()).filter((l) => l && l !== '-');
+  const idx = lines.findIndex((l) => headerOf(l) === 'ingredients');
+  if (idx === -1 || lines.length - idx < 3) return null;
+  const before = lines.slice(Math.max(0, idx - 12), idx).filter((l) => l.length <= 60 && PAGE_META.test(norm(l)));
+  let after = lines.slice(idx);
+  const stop = after.findIndex((l, i) => i > 0 && l.length <= 60 && PAGE_STOP.test(norm(l)));
+  if (stop > 0) after = after.slice(0, stop);
+  const recipe = parseText([pageTitle, ...before, ...after].filter((l) => l && l.trim()).join('\n'));
+  if (!recipe) return null;
+  const title = cleanTitle(pageTitle || '');
+  if (title) recipe.title = title;
+  return recipe;
+}
+
 /** Retourne un brouillon de recette, ou null si le texte est vide. */
 export function parseText(text) {
   const lines = String(text).replace(/\r/g, '').split('\n')
