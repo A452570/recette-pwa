@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mes recettes</title>
+  <meta name="theme-color" content="#c2410c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Recettes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="busy" class="busy" hidden>
+    <div class="busy-box"><div class="spinner"></div><p id="busy-text">Traitement en cours…</p></div>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <!-- Sélecteurs de fichiers -->
+  <input type="file" id="in-gallery" accept="image/*" multiple hidden>
+  <input type="file" id="in-camera" accept="image/*" capture="environment" hidden>
+  <input type="file" id="in-backup" accept=".json,application/json,text/plain" hidden>
+
+  <dialog id="dlg-link">
+    <form method="dialog" id="form-link">
+      <h2>Importer une recette</h2>
+      <label for="link-url">Adresse de la page</label>
+      <input id="link-url" type="url" inputmode="url" placeholder="https://…" autocomplete="off" required>
+      <p class="hint">Nécessite un relais configuré dans Réglages (voir le README).</p>
+      <div class="dlg-actions">
+        <button type="button" class="ghost" data-close>Annuler</button>
+        <button type="submit" class="primary">Importer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-text">
+    <form method="dialog" id="form-text">
+      <h2>Coller une recette</h2>
+      <p class="hint">Colle le texte de la recette : l'appli repère le titre, les ingrédients et les étapes. Tu pourras tout corriger avant d'enregistrer.</p>
+      <textarea id="text-body" rows="10" placeholder="Texte de la recette" required></textarea>
+      <div class="dlg-actions">
+        <button type="button" class="ghost" data-close>Annuler</button>
+        <button type="submit" class="primary">Mettre en forme</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-menu">
+    <h2>Menu</h2>
+    <div class="menu">
+      <button data-action="categories">Gérer les catégories</button>
+      <button data-action="export">Exporter vers un fichier</button>
+      <button data-action="share">Partager mes recettes</button>
+      <button data-action="import-backup">Importer une sauvegarde</button>
+      <button data-action="settings">Réglages</button>
+      <button class="ghost" data-close>Fermer</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-categories">
+    <h2>Catégories</h2>
+    <form id="form-cat" class="cat-add">
+      <input id="cat-new" placeholder="Nouvelle catégorie" autocomplete="off" required>
+      <button type="submit" class="primary">Ajouter</button>
+    </form>
+    <div id="cat-list" class="cat-list"></div>
+    <div class="dlg-actions"><button type="button" class="ghost" data-close>Fermer</button></div>
+  </dialog>
+
+  <dialog id="dlg-settings">
+    <form method="dialog" id="form-settings">
+      <h2>Réglages</h2>
+      <label for="relay-url">Adresse du relais (import par lien)</label>
+      <input id="relay-url" type="url" inputmode="url" placeholder="https://mon-relais.workers.dev" autocomplete="off">
+      <p class="hint">Facultatif. Sans relais, l'import par lien ne fonctionne pas : utilise « Coller du texte » ou une photo.</p>
+      <div class="dlg-actions">
+        <button type="button" class="ghost" data-close>Annuler</button>
+        <button type="submit" class="primary">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
