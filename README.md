@@ -1,63 +1,65 @@
-# Mes recettes — application web (PWA) pour iPhone et Android
+# Mes recettes – application Android
 
-Même fonctions que l'application Android, mais sous forme de site web installable : aucune
-App Store, aucun Mac, aucun compte développeur. Tout est stocké **sur l'appareil**
-(base IndexedDB du navigateur), et l'application fonctionne hors connexion.
+Application Kotlin / Jetpack Compose avec base de données locale Room (SQLite).
 
 ## Fonctions
 
-- Liste avec recherche par titre ou ingrédient (sans tenir compte des accents)
-- Ajout, modification, suppression
-- **Catégories** : une par recette, gérées dans Menu ▾ → Gérer les catégories (ajouter, renommer, supprimer) ; filtre par catégorie et tri (date, titre, catégorie) sur l'écran principal
-- **Coller du texte** : l'appli repère titre, ingrédients, étapes, durée, portions
-- **Capture / photo** et **Prendre une photo** : lecture du texte (OCR) puis mise en forme
-- **Importer un lien** : lit les données de recette de la page (nécessite un relais, voir plus bas)
-- **Sauvegarde** : export en fichier JSON, partage, import (fusion sans doublons)
-- Les fichiers de sauvegarde sont **identiques à ceux de l'appli Android** : on peut passer
-  ses recettes d'un système à l'autre.
+- **Importer une recette depuis un lien** : l'appli télécharge la page et lit les données
+  structurées `schema.org/Recipe` (titre, ingrédients, étapes, durée, portions).
+  Fonctionne avec la plupart des sites de cuisine.
+- **Coller du texte** : colle n'importe quel texte de recette ; l'appli repère le titre, les
+  ingrédients, les étapes, la durée et les portions (par les rubriques « Ingrédients » /
+  « Préparation » ou, à défaut, par la forme des lignes). Un écran de validation s'ouvre
+  pour corriger. Un texte partagé depuis une autre appli est traité de la même façon.
+- **Scanner une photo ou une capture d'écran** : « Capture / photo » (jusqu'à 5 images à la
+  suite, si la recette tient sur plusieurs captures) ou « Prendre une photo ». Le texte est lu
+  sur le téléphone (OCR Google ML Kit, hors ligne, alphabet latin), puis mis en forme comme
+  pour « Coller du texte », avec écran de validation.
+- **Partage depuis le navigateur** : dans Chrome, « Partager » → « Mes recettes » lance l'import.
+- **Saisie manuelle**, **modification** et **suppression**.
+- **Recherche** par titre ou ingrédient, consultable hors ligne.
+- **Sauvegarde et partage de la base** (menu « Menu » de l'écran principal) :
+  - *Exporter vers un fichier* : crée un fichier `recettes-AAAA-MM-JJ.json` à l'endroit choisi
+    (stockage du téléphone, Google Drive…).
+  - *Partager mes recettes* : envoie ce même fichier vers une autre appli (messagerie, e-mail…).
+  - *Importer une sauvegarde* : fusionne un fichier `.json` avec la base actuelle. Les recettes
+    déjà présentes (même titre et mêmes ingrédients) sont ignorées, rien n'est écrasé.
+- Un écran de validation s'ouvre après l'import : tu peux corriger avant d'enregistrer.
 
-## 1. Publier l'application (GitHub Pages, gratuit)
+## Obtenir l'APK
 
-1. Crée un dépôt GitHub (public, ou privé si ton offre le permet pour Pages).
-2. Envoie-y **le contenu** de ce dossier (`index.html`, `sw.js`, `js/`, `icons/`… à la racine du dépôt).
-3. Dans le dépôt : **Settings → Pages → Build and deployment → Deploy from a branch**,
-   branche `main`, dossier `/ (root)`, puis **Save**.
-4. Après une ou deux minutes, l'adresse apparaît en haut de la page :
-   `https://TON_PSEUDO.github.io/NOM_DU_DEPOT/`
+### Option A – Android Studio
+1. Installer Android Studio (Ladybug ou plus récent), puis *File → Open* sur ce dossier.
+2. Laisser Gradle synchroniser (il télécharge les dépendances).
+3. *Build → Build APK(s)*, ou en ligne de commande (Gradle 8.9+, JDK 17, Android SDK 34) : `gradle assembleDebug`
+4. L'APK se trouve dans `app/build/outputs/apk/debug/app-debug.apk`.
 
-## 2. Installer sur l'iPhone
+### Option B – sans rien installer (GitHub Actions)
+1. Créer un dépôt GitHub et y pousser ce dossier.
+2. Onglet **Actions** → workflow « Build APK » (il se lance à chaque push).
+3. Télécharger l'artefact `recettes-debug-apk`.
 
-1. Ouvre l'adresse **dans Safari** (pas dans Chrome ni dans une autre application).
-2. Touche le bouton **Partager** (carré avec une flèche) puis **Sur l'écran d'accueil**.
-3. Valide : l'icône « Recettes » apparaît et l'application s'ouvre en plein écran.
+## Installer sur le téléphone
+Copier `app-debug.apk` sur le téléphone, l'ouvrir et autoriser « Installer des applications inconnues »
+pour l'application utilisée (Fichiers, Chrome…).
 
-Sur Android : Chrome → menu ⋮ → **Installer l'application**.
+## Limites connues
+- Les sites sans données JSON-LD (ou protégés par un anti-bot) ne peuvent pas être importés :
+  il reste la saisie manuelle.
+- L'APK produit est un APK de *debug* (signé avec la clé de debug), suffisant pour un usage personnel.
 
-> **Important sur iPhone** : installe bien l'application sur l'écran d'accueil. Dans un simple
-> onglet Safari, iOS peut effacer les données du site après quelques semaines sans visite.
-> Pense aussi à faire une **sauvegarde** (Menu ▾ → Exporter) de temps en temps.
+## Reels / vidéos Facebook
 
-## 3. Activer l'import par lien (facultatif)
+Colle (ou partage vers l'appli) le lien d'un reel ou d'une vidéo Facebook : l'appli lit la
+**légende** de la publication et la met en forme comme un texte collé (titre, ingrédients,
+étapes), à relire avant d'enregistrer. Cela ne fonctionne que si la publication est publique
+et que Facebook fournit son aperçu ; sinon, copie la légende dans Facebook et utilise
+« Coller du texte ». Les recettes dites uniquement à l'oral dans la vidéo ne sont pas lues.
 
-Un navigateur n'a pas le droit de lire le contenu d'un autre site. Il faut un petit relais
-gratuit, qui télécharge la page à ta place :
+## Catégories
 
-1. Crée un compte gratuit sur cloudflare.com, puis **Workers & Pages → Create → Worker**.
-2. Ouvre `worker/relay.js`, remplace `https://TON_PSEUDO.github.io` par l'adresse de **ton**
-   application (sans `/` final, et sans le nom du dépôt : seulement `https://pseudo.github.io`),
-   colle le code dans le Worker et clique sur **Deploy**.
-3. Copie l'adresse du Worker (`https://….workers.dev`).
-4. Dans l'application : **Menu ▾ → Réglages**, colle cette adresse, enregistre.
-
-Seule ton application est autorisée à utiliser ce relais. Sans relais, l'import par lien est
-indisponible ; « Coller du texte » et la lecture de photo marchent toujours.
-
-## Limites à connaître
-
-- **Lecture de photo** : la bibliothèque et le modèle de français (quelques Mo) se téléchargent
-  la **première fois** (connexion internet nécessaire), puis la lecture se fait sur l'appareil.
-  La qualité dépend de la netteté de l'image ; l'écriture manuscrite est mal reconnue.
-- **Partage depuis Safari** : iOS ne permet pas d'envoyer un lien directement vers une PWA.
-  Copie le lien (ou le texte) puis colle-le dans l'application. Sur Android, une PWA installée
-  apparaît bien dans le menu Partager.
-- **Mises à jour** : l'application se met à jour toute seule à l'ouverture quand il y a du réseau.
+Chaque recette peut avoir une **catégorie** (Entrée, Plat, Dessert… choisie dans le formulaire).
+Menu ▾ → **Gérer les catégories** : ajouter, renommer (les recettes suivent) ou supprimer
+(les recettes sont conservées, sans catégorie). Sur l'écran principal, touche une catégorie
+pour filtrer, et utilise **Tri** pour classer par date, par titre ou par catégorie. Les catégories
+sont incluses dans les sauvegardes `.json`.
